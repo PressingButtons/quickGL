@@ -95,6 +95,6 @@
         return results ? results.map( x => x.substring(x.lastIndexOf(' ') + 1, x.length - 1)) : [];
     }
 
-    return QuickGL;
+    self.QuickGL = QuickGL;
 
 }
