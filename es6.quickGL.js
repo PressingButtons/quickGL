@@ -52,7 +52,7 @@ function createShader(gl, text, type) {
     const shader = gl.createShader(type);
     gl.shaderSource(shader, text);
     gl.compileShader(shader);
-    if(gl.getShaderParameter(program, gl.COMPILE_STATUS)) return shader;
+    if(gl.getShaderParameter(shader, gl.COMPILE_STATUS)) return shader;
     reportError(gl.getShaderInfoLog(shader), text);
     gl.deleteShader(shader);
     throw 'quickGL shader error.'
