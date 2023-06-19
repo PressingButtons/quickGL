@@ -1,8 +1,7 @@
  export default class QuickGL {
 
-    #shaders = { };
-    #textres = { };
-
+    #shaders  = { };
+    #programDetails;
     /** @type {WebGLRenderingContext} */
     #gl;
 
@@ -19,6 +18,14 @@
         else throw 'quickGL - compiile error!';
     }
 
+    createBuffer( buffer_data ) {
+        return createBuffer(this.gl, buffer_data);
+    }
+
+    createTexture(bitmap) {
+        return createTexture(this.gl, bitmap);
+    }
+
     shader(key) {
         return this.#shaders[key];
     }
@@ -28,54 +35,66 @@
         this.gl.useProgram(this.#shaders[name].program);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+        this.#programDetails = this.#shaders[name];
     }
 
-    setAttribute(attribute, length, stride, offset) {
-        this.#gl.enableVertexAttribArray(attribute);
-        this.#gl.vertexAttribPointer(attribute, length, this.#gl.FLOAT, false, stride * 4, offset * 4);
+    setAttribute(attribute, length, stride, offset = 0) {
+        const location = this.#programDetails.attributes[attribute];
+        this.#gl.enableVertexAttribArray(location);
+        this.#gl.vertexAttribPointer(location, length, this.#gl.FLOAT, false, stride * 4, offset * 4);
     }
 
     setAttributes(attributes) {
-        for(const key in attributes) {
-            const attr = attributes[key];
-            this.setAttribute(attr.attr, attr.length, attr.stride, attr.offset);
+        for(const group of attributes) {
+            this.setAttribute(group.location, group.length, group.stride, group.offset);
         }
+    }
+
+    setBuffer( buffer ) {
+        this.#gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
     }
 
     setMatrix(uniform, data) {
-        this.#gl.uniformMatrix4fv(uniform, false, data);
+        const location = this.#programDetails.uniforms[uniform];
+        this.#gl.uniformMatrix4fv(location, false, data);
     }
 
     setMatrices(uniforms) {
-        for(const key in uniforms) {
-            const unif = uniforms[key];
-            this.setMatrix(uniform.uniform, uniform.data);
-        }
+      for(const uniform of uniforms) this.setMatrix(uniform.location, uniform.value);
     }
 
     setTexture(uniform, texture, index) {
-        this.#gl.activeTexture(gl.TEXTURE0 + index);
-        this.#gl.bindTexture(gl.TEXTURE_2D, texture);
-        this.#gl.uniform1i(uniform, index);
+        this.#gl.activeTexture(this.#gl.TEXTURE0 + index);
+        this.#gl.bindTexture(this.#gl.TEXTURE_2D, texture);
+        this.setUniform('uniform1i', uniform, index);
     }
 
     setTextures(textures) {
-        let i = 0;
-        for(const key in textures) {
-            this.setTexture(textures[key].uniform, textures[key].texture, i);
-            i++;
-        }
+        for(let i = 0; i < textures.length; i++) this.setTexture(textures[i].location, textures[i].texture, i);
     }
 
-    draw(shader_name, attributes, matrices, textures) {
-        this.useProgram(shader_name);
-        this.setAttributes(attributes);
-        this.setMatrices(matrices)
-        this.setTexture(textures);
+    setUniform(method, uniform, value) {
+        const location = this.#programDetails.uniforms[uniform];
+        this.#gl[method](location, value);
+    }
+
+    setUniforms(uniforms) {
+        for(const group of uniforms) this.setUniform(group.method, group.location, group.value);
+    }
+
+    draw(first, vertices) {
+        this.#gl.drawArrays(this.#gl.TRIANGLE_STRIP, first, vertices);
+    }
+
+    fill( color ) {
+        this.gl.clearColor(...color);
+        this.gl.clear(this.gl.DEPTH_BUFFER_BIT | this.gl.COLOR_BUFFER_BIT);
     }
 
 }
 
+
+// COMPILING SHADERS =========================================================
 /**
  * 
  * @param {WebGLRenderingContext} gl 
@@ -165,5 +184,29 @@ function extractVariable(text, key) {
     return results ? results.map( x => x.substring(x.lastIndexOf(' ') + 1, x.length - 1)) : [];
 }
 
+// WEBGL UTILITIE METHODS  ==============================================================
+function createBuffer(gl, buffer_data) {
+    const buffer = gl.createBuffer( );
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, buffer_data, gl.STATIC_DRAW);
+    return buffer;
+}
 
+function createTexture(gl, bitmap) {
+    const texture = gl.createTexture( );
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
+    if(powerOf2(bitmap.width) && powerOf2(bitmap.height)) gl.generateMipmap(gl.TEXTURE_2D);
+    else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    }
+    return texture;
+}
+
+function powerOf2(n) {
+    return (n & (n - 1) == 0);
+}
 
