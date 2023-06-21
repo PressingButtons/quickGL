@@ -19,11 +19,11 @@
     }
 
     createBuffer( buffer_data ) {
-        return createBuffer(this.gl, buffer_data);
+        return CreateBuffer(this.gl, buffer_data);
     }
 
     createTexture(bitmap) {
-        return createTexture(this.gl, bitmap);
+        return CreateTexture(this.gl, bitmap);
     }
 
     shader(key) {
@@ -185,14 +185,14 @@ function extractVariable(text, key) {
 }
 
 // WEBGL UTILITIE METHODS  ==============================================================
-function createBuffer(gl, buffer_data) {
+function CreateBuffer(gl, buffer_data) {
     const buffer = gl.createBuffer( );
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, buffer_data, gl.STATIC_DRAW);
     return buffer;
 }
 
-function createTexture(gl, bitmap) {
+function CreateTexture(gl, bitmap) {
     const texture = gl.createTexture( );
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
